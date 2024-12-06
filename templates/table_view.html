@@ -76,9 +76,9 @@
             const triples = parseFloat(row.querySelector(".triples").value) || 0;
             const hr = parseFloat(row.querySelector(".hr").value) || 0;
 
-            const ave = ab > 0 ? (h / ab).toFixed(3) : 0;
-            const obp = ab + bb + hbp > 0 ? ((h + bb + hbp) / (ab + bb + hbp)).toFixed(3) : 0;
-            const slg = ab > 0 ? (((h - (doubles + triples + hr)) + (2 * doubles) + (3 * triples) + (4 * hr)) / ab).toFixed(3) : 0;
+            const ave = ab > 0 ? (h / ab).toFixed(3) : "0.000";
+            const obp = ab + bb + hbp > 0 ? ((h + bb + hbp) / (ab + bb + hbp)).toFixed(3) : "0.000";
+            const slg = ab > 0 ? (((h - (doubles + triples + hr)) + (2 * doubles) + (3 * triples) + (4 * hr)) / ab).toFixed(3) : "0.000";
             const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
 
             row.querySelector(".ave").textContent = ave;
@@ -169,7 +169,7 @@
                 {% for row in rows %}
                 <tr class="player-row" data-row-id="{{ row[0] }}">
                     <td>{{ row[2] }}</td>
-                    <td class="ave">{{ row[3] }}</td>
+                    <td class="ave" style="font-size: 1.2em;">{{ row[3] | round(3) }}</td>
                     <td><input type="number" class="ab" value="{{ row[4] }}"></td>
                     <td><input type="number" class="h" value="{{ row[5] }}"></td>
                     <td><input type="number" class="k" value="{{ row[6] }}"></td>
@@ -180,7 +180,7 @@
                     <td><input type="number" class="hr" value="{{ row[11] }}"></td>
                     <td><input type="number" class="rbi" value="{{ row[12] }}"></td>
                     <td><input type="number" class="r" value="{{ row[13] }}"></td>
-                    <td class="ops">{{ row[14] }}</td>
+                    <td class="ops" style="font-size: 1.2em;">{{ row[14] | round(3) }}</td>
                     <td>
                         <button class="button" onclick="deleteRow({{ row[0] }})">Delete</button>
                     </td>
