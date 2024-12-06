@@ -26,37 +26,20 @@
             font-size: 18px;
             border-radius: 5px;
             transition: 0.3s;
-            display: inline-block;
         }
         .button:hover {
             background-color: red;
             color: white;
         }
-        #content {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: black;
-            color: white;
-        }
     </style>
-    <script>
-        async function loadContent(route) {
-            const response = await fetch(route);
-            const content = await response.text();
-            document.getElementById('content').innerHTML = content;
-        }
-    </script>
 </head>
 <body>
     <h1>Welcome to the Baseball Stats App</h1>
     <div>
-        <button class="button" onclick="loadContent('/stats/content')">Estadísticas</button>
-        <button class="button" onclick="loadContent('/team/content')">Equipo</button>
-        <button class="button" onclick="loadContent('/scoring/content')">Anotaciones</button>
-        <button class="button" onclick="loadContent('/lineup/content')">Alineación</button>
-    </div>
-    <div id="content">
-        <!-- Dynamic content will load here -->
+        <a href="/stats" class="button">Estadísticas</a>
+        <a href="/team" class="button">Equipo</a>
+        <a href="/scoring" class="button">Anotaciones</a>
+        <a href="/lineup" class="button">Alineación</a>
     </div>
 </body>
 </html>
