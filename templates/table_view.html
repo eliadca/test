@@ -192,3 +192,61 @@
     <button class="button" onclick="addRow()">Add Row</button>
 </body>
 </html>
+<script>
+    async function saveRow(row, column, value, rowId) {
+        const tableId = {{ table[0] }};
+        const response = await fetch(`/tables/${tableId}/update_row/${rowId}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ column, value }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            row.querySelector(".ave").textContent = data.ave.toFixed(3);
+            row.querySelector(".ops").textContent = data.ops.toFixed(3);
+        }
+    }
+
+    function calculateRow(row) {
+        const ab = parseFloat(row.querySelector(".ab").value) || 0;
+        const h = parseFloat(row.querySelector(".h").value) || 0;
+        const bb = parseFloat(row.querySelector(".bb").value) || 0;
+        const hbp = parseFloat(row.querySelector(".hbp").value) || 0;
+        const doubles = parseFloat(row.querySelector(".doubles").value) || 0;
+        const triples = parseFloat(row.querySelector(".triples").value) || 0;
+        const hr = parseFloat(row.querySelector(".hr").value) || 0;
+
+        const ave = ab > 0 ? (h / ab).toFixed(3) : 0;
+        const obp = ab + bb + hbp > 0 ? ((h + bb + hbp) / (ab + bb + hbp)).toFixed(3) : 0;
+        const slg = ab > 0 ? (((h - (doubles + triples + hr)) + (2 * doubles) + (3 * triples) + (4 * hr)) / ab).toFixed(3) : 0;
+        const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
+
+        row.querySelector(".ave").textContent = ave;
+        row.querySelector(".ops").textContent = ops;
+    }
+
+    function setupRowListeners(row) {
+        row.querySelectorAll("input").forEach((input) => {
+            input.addEventListener("input", (e) => {
+                const column = e.target.className;
+                const value = e.target.value;
+                const rowId = row.dataset.rowId;
+                calculateRow(row);
+                saveRow(row, column, value, rowId);
+            });
+
+            input.addEventListener("focus", (e) => {
+                e.target.select();
+            });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".player-row").forEach((row) => {
+            setupRowListeners(row);
+        });
+    });
+</script>
