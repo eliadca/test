@@ -85,9 +85,32 @@
             row.querySelector(".ops").textContent = ops;
         }
 
+        async function saveRow(row, column, value, rowId) {
+            const tableId = {{ table[0] }};
+            const response = await fetch(`/tables/${tableId}/update_row/${rowId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ column, value }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                row.querySelector(".ave").textContent = data.ave.toFixed(3);
+                row.querySelector(".ops").textContent = data.ops.toFixed(3);
+            }
+        }
+
         function setupRowListeners(row) {
-            row.querySelectorAll("input").forEach(input => {
-                input.addEventListener("input", () => calculateRow(row));
+            row.querySelectorAll("input").forEach((input) => {
+                input.addEventListener("input", (e) => {
+                    const column = e.target.className;
+                    const value = e.target.value;
+                    const rowId = row.dataset.rowId;
+                    calculateRow(row);
+                    saveRow(row, column, value, rowId);
+                });
                 input.addEventListener("focus", (e) => {
                     e.target.select();
                 });
@@ -95,7 +118,9 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            document.querySelectorAll(".player-row").forEach(setupRowListeners);
+            document.querySelectorAll(".player-row").forEach((row) => {
+                setupRowListeners(row);
+            });
         });
 
         async function addRow() {
@@ -142,7 +167,7 @@
             </thead>
             <tbody>
                 {% for row in rows %}
-                <tr class="player-row">
+                <tr class="player-row" data-row-id="{{ row[0] }}">
                     <td>{{ row[2] }}</td>
                     <td class="ave">{{ row[3] }}</td>
                     <td><input type="number" class="ab" value="{{ row[4] }}"></td>
