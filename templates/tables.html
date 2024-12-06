@@ -50,35 +50,19 @@
         }
     </style>
     <script>
-        // Function to fetch the updated list of tables
-        async function fetchTables() {
-            const response = await fetch('/stats/tables');
-            const tablesHtml = await response.text();
-            document.querySelector('.table-list').innerHTML = tablesHtml;
-        }
-
-        // Function to create a new table
         async function createTable() {
             const title = prompt('Enter a title for the new table:');
             if (title) {
-                const response = await fetch('/tables/add', {
+                await fetch('/tables/add', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title })
                 });
-
-                if (response.ok) {
-                    // Clear the current list and fetch updated content to avoid duplication
-                    document.querySelector('.table-list').innerHTML = '';
-                    fetchTables();
-                } else {
-                    alert('Failed to create a new table. Please try again.');
-                }
+                location.reload();
             }
         }
-
-        // Load the list of tables when the page is ready
-        document.addEventListener('DOMContentLoaded', fetchTables);
     </script>
 </head>
 <body>
