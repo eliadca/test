@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, render_template
 from app.database import get_db_connection
 
 tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
@@ -24,6 +24,22 @@ def add_table():
     conn.close()
 
     return jsonify({'message': 'Table added successfully'})
+
+@tables_bp.route('/<int:table_id>', methods=['GET'])
+def view_table(table_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Fetch table metadata
+    cursor.execute('SELECT * FROM tables WHERE id = ?', (table_id,))
+    table = cursor.fetchone()
+
+    # Fetch rows for the table
+    cursor.execute('SELECT * FROM rows WHERE table_id = ?', (table_id,))
+    rows = cursor.fetchall()
+
+    conn.close()
+    return render_template('table_view.html', table=table, rows=rows)
 
 @tables_bp.route('/<int:table_id>/add_row', methods=['POST'])
 def add_row(table_id):
@@ -52,6 +68,15 @@ def add_row(table_id):
     conn.close()
 
     return jsonify({'message': 'Row added successfully'})
+
+@tables_bp.route('/<int:table_id>/delete_row/<int:row_id>', methods=['DELETE'])
+def delete_row(table_id, row_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM rows WHERE id = ? AND table_id = ?', (row_id, table_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Row deleted successfully'})
 
 @tables_bp.route('/<int:table_id>', methods=['DELETE'])
 def delete_table(table_id):
