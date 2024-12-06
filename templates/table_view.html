@@ -36,6 +36,11 @@
             background-color: red;
             color: white;
         }
+        td.ave, td.ops {
+            font-size: 1.2em;
+            text-align: center;
+            color: navy;
+        }
         input[type="number"] {
             width: 100%;
             border: none;
@@ -76,9 +81,9 @@
             const triples = parseFloat(row.querySelector(".triples").value) || 0;
             const hr = parseFloat(row.querySelector(".hr").value) || 0;
 
-            const ave = ab > 0 ? (h / ab).toFixed(3) : 0;
-            const obp = ab + bb + hbp > 0 ? ((h + bb + hbp) / (ab + bb + hbp)).toFixed(3) : 0;
-            const slg = ab > 0 ? (((h - (doubles + triples + hr)) + (2 * doubles) + (3 * triples) + (4 * hr)) / ab).toFixed(3) : 0;
+            const ave = ab > 0 ? (h / ab).toFixed(3) : "0.000";
+            const obp = ab + bb + hbp > 0 ? ((h + bb + hbp) / (ab + bb + hbp)).toFixed(3) : "0.000";
+            const slg = ab > 0 ? (((h - (doubles + triples + hr)) + (2 * doubles) + (3 * triples) + (4 * hr)) / ab).toFixed(3) : "0.000";
             const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
 
             row.querySelector(".ave").textContent = ave;
@@ -111,6 +116,7 @@
                     calculateRow(row);
                     saveRow(row, column, value, rowId);
                 });
+
                 input.addEventListener("focus", (e) => {
                     e.target.select();
                 });
@@ -122,25 +128,6 @@
                 setupRowListeners(row);
             });
         });
-
-        async function addRow() {
-            const name = prompt("Enter player name:");
-            if (name) {
-                await fetch(window.location.href + "/add_row", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name, ab: 0, h: 0, k: 0, bb: 0, hbp: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, r: 0 })
-                });
-                location.reload();
-            }
-        }
-
-        async function deleteRow(rowId) {
-            if (confirm("Are you sure you want to delete this row?")) {
-                await fetch(window.location.href + "/delete_row/" + rowId, { method: "DELETE" });
-                location.reload();
-            }
-        }
     </script>
 </head>
 <body>
@@ -169,7 +156,7 @@
                 {% for row in rows %}
                 <tr class="player-row" data-row-id="{{ row[0] }}">
                     <td>{{ row[2] }}</td>
-                    <td class="ave">{{ row[3] }}</td>
+                    <td class="ave">{{ row[3] | round(3) }}</td>
                     <td><input type="number" class="ab" value="{{ row[4] }}"></td>
                     <td><input type="number" class="h" value="{{ row[5] }}"></td>
                     <td><input type="number" class="k" value="{{ row[6] }}"></td>
@@ -180,7 +167,7 @@
                     <td><input type="number" class="hr" value="{{ row[11] }}"></td>
                     <td><input type="number" class="rbi" value="{{ row[12] }}"></td>
                     <td><input type="number" class="r" value="{{ row[13] }}"></td>
-                    <td class="ops">{{ row[14] }}</td>
+                    <td class="ops">{{ row[14] | round(3) }}</td>
                     <td>
                         <button class="button" onclick="deleteRow({{ row[0] }})">Delete</button>
                     </td>
@@ -192,61 +179,3 @@
     <button class="button" onclick="addRow()">Add Row</button>
 </body>
 </html>
-<script>
-    async function saveRow(row, column, value, rowId) {
-        const tableId = {{ table[0] }};
-        const response = await fetch(`/tables/${tableId}/update_row/${rowId}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ column, value }),
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            row.querySelector(".ave").textContent = data.ave.toFixed(3);
-            row.querySelector(".ops").textContent = data.ops.toFixed(3);
-        }
-    }
-
-    function calculateRow(row) {
-        const ab = parseFloat(row.querySelector(".ab").value) || 0;
-        const h = parseFloat(row.querySelector(".h").value) || 0;
-        const bb = parseFloat(row.querySelector(".bb").value) || 0;
-        const hbp = parseFloat(row.querySelector(".hbp").value) || 0;
-        const doubles = parseFloat(row.querySelector(".doubles").value) || 0;
-        const triples = parseFloat(row.querySelector(".triples").value) || 0;
-        const hr = parseFloat(row.querySelector(".hr").value) || 0;
-
-        const ave = ab > 0 ? (h / ab).toFixed(3) : 0;
-        const obp = ab + bb + hbp > 0 ? ((h + bb + hbp) / (ab + bb + hbp)).toFixed(3) : 0;
-        const slg = ab > 0 ? (((h - (doubles + triples + hr)) + (2 * doubles) + (3 * triples) + (4 * hr)) / ab).toFixed(3) : 0;
-        const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
-
-        row.querySelector(".ave").textContent = ave;
-        row.querySelector(".ops").textContent = ops;
-    }
-
-    function setupRowListeners(row) {
-        row.querySelectorAll("input").forEach((input) => {
-            input.addEventListener("input", (e) => {
-                const column = e.target.className;
-                const value = e.target.value;
-                const rowId = row.dataset.rowId;
-                calculateRow(row);
-                saveRow(row, column, value, rowId);
-            });
-
-            input.addEventListener("focus", (e) => {
-                e.target.select();
-            });
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        document.querySelectorAll(".player-row").forEach((row) => {
-            setupRowListeners(row);
-        });
-    });
-</script>
