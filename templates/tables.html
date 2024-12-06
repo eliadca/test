@@ -116,12 +116,3 @@
     </div>
 </body>
 </html>
-<script>
-    async function fetchTables() {
-        const response = await fetch('/stats/tables');
-        const tables = await response.text();
-        document.querySelector('.table-list').innerHTML = tables;
-    }
-
-    document.addEventListener('DOMContentLoaded', fetchTables);
-</script>
