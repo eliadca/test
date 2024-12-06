@@ -116,3 +116,24 @@
     </div>
 </body>
 </html>
+<script>
+    async function fetchTables() {
+        const response = await fetch('/stats/tables');
+        const tables = await response.text();
+        document.querySelector('.table-list').innerHTML = tables;
+    }
+
+    async function createTable() {
+        const title = prompt('Enter a title for the new table:');
+        if (title) {
+            await fetch('/tables/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            fetchTables();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchTables);
+</script>
