@@ -1,6 +1,8 @@
 from flask import Flask, render_template
+from app.stats import stats_bp
 
 app = Flask(__name__)
+app.register_blueprint(stats_bp)
 
 @app.route('/')
 def home():
