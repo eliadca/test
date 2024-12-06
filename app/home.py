@@ -1,12 +1,10 @@
 from flask import Flask, render_template
 from .stats import stats_bp
 from .tables import tables_bp
-from .team import team_bp
 
 app = Flask(__name__, template_folder="../templates")
 app.register_blueprint(stats_bp)
 app.register_blueprint(tables_bp)
-app.register_blueprint(team_bp)
 
 @app.route('/')
 def home():
