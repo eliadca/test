@@ -1,16 +1,11 @@
-from flask import Blueprint, jsonify, request, render_template
+from flask import Blueprint, jsonify, request, Response
 from app.database import get_db_connection
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
 
+# Define Blueprint
 tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
-
-@tables_bp.route('/', methods=['GET'])
-def get_tables():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM tables')
-    tables = cursor.fetchall()
-    conn.close()
-    return jsonify(tables)
 
 @tables_bp.route('/add', methods=['POST'])
 def add_table():
@@ -25,59 +20,6 @@ def add_table():
 
     return jsonify({'message': 'Table added successfully'})
 
-@tables_bp.route('/<int:table_id>', methods=['GET'])
-def view_table(table_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Fetch table metadata
-    cursor.execute('SELECT * FROM tables WHERE id = ?', (table_id,))
-    table = cursor.fetchone()
-
-    # Fetch rows for the table
-    cursor.execute('SELECT * FROM rows WHERE table_id = ?', (table_id,))
-    rows = cursor.fetchall()
-
-    conn.close()
-    return render_template('table_view.html', table=table, rows=rows)
-
-@tables_bp.route('/<int:table_id>/add_row', methods=['POST'])
-def add_row(table_id):
-    data = request.get_json()
-    name = data.get('name', '')
-    ab = data.get('ab', 0)
-    h = data.get('h', 0)
-    k = data.get('k', 0)
-    bb = data.get('bb', 0)
-    hbp = data.get('hbp', 0)
-    doubles = data.get('doubles', 0)
-    triples = data.get('triples', 0)
-    hr = data.get('hr', 0)
-    rbi = data.get('rbi', 0)
-    r = data.get('r', 0)
-
-    ave = h / ab if ab > 0 else 0
-    ops = ave + bb / (ab + bb) if (ab + bb) > 0 else 0
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''INSERT INTO rows (table_id, name, ave, ab, h, k, bb, hbp, doubles, triples, hr, rbi, r, ops)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                   (table_id, name, ave, ab, h, k, bb, hbp, doubles, triples, hr, rbi, r, ops))
-    conn.commit()
-    conn.close()
-
-    return jsonify({'message': 'Row added successfully'})
-
-@tables_bp.route('/<int:table_id>/delete_row/<int:row_id>', methods=['DELETE'])
-def delete_row(table_id, row_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM rows WHERE id = ? AND table_id = ?', (row_id, table_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Row deleted successfully'})
-
 @tables_bp.route('/<int:table_id>', methods=['DELETE'])
 def delete_table(table_id):
     conn = get_db_connection()
@@ -87,34 +29,58 @@ def delete_table(table_id):
     conn.close()
     return jsonify({'message': 'Table deleted successfully'})
 
-@tables_bp.route('/<int:table_id>/update_row/<int:row_id>', methods=['POST'])
-def update_row(table_id, row_id):
-    data = request.get_json()
-    column = data.get('column')
-    value = data.get('value')
-
-    if column not in [
-        'ab', 'h', 'k', 'bb', 'hbp', 'doubles', 'triples', 'hr', 'rbi', 'r'
-    ]:
-        return jsonify({'error': 'Invalid column name'}), 400
-
+@tables_bp.route('/download/<int:table_id>', methods=['GET'])
+def download_table(table_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(f'UPDATE rows SET {column} = ? WHERE id = ? AND table_id = ?', (value, row_id, table_id))
-    conn.commit()
 
-    # Recalculate AVE and OPS after the update
-    cursor.execute('SELECT ab, h, bb, hbp, doubles, triples, hr FROM rows WHERE id = ?', (row_id,))
-    row = cursor.fetchone()
-    ab, h, bb, hbp, doubles, triples, hr = row
+    # Fetch table title
+    cursor.execute('SELECT title FROM tables WHERE id = ?', (table_id,))
+    table = cursor.fetchone()
+    if not table:
+        return jsonify({'error': 'Table not found'}), 404
 
-    ave = h / ab if ab > 0 else 0
-    obp = (h + bb + hbp) / (ab + bb + hbp) if (ab + bb + hbp) > 0 else 0
-    slg = ((h - (doubles + triples + hr)) + (2 * doubles) + (3 * triples) + (4 * hr)) / ab if ab > 0 else 0
-    ops = obp + slg
+    title = table[0]
 
-    cursor.execute('UPDATE rows SET ave = ?, ops = ? WHERE id = ?', (ave, ops, row_id))
-    conn.commit()
+    # Fetch rows for the table
+    cursor.execute('SELECT name, ave, ab, h, k, bb, hbp, doubles, triples, hr, rbi, r, ops FROM rows WHERE table_id = ?', (table_id,))
+    rows = cursor.fetchall()
     conn.close()
 
-    return jsonify({'message': 'Row updated successfully', 'ave': round(ave, 3), 'ops': round(ops, 3)})
+    # Generate PDF
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    pdf.setTitle(f"Table - {title}")
+
+    # Title
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawString(50, 750, f"Table: {title}")
+
+    # Headers
+    pdf.setFont("Helvetica-Bold", 12)
+    headers = ["Name", "AVE", "AB", "H", "K", "BB", "HBP", "2B", "3B", "HR", "RBI", "R", "OPS"]
+    x, y = 50, 720
+    for header in headers:
+        pdf.drawString(x, y, header)
+        x += 50
+    y -= 20
+
+    # Rows
+    pdf.setFont("Helvetica", 10)
+    for row in rows:
+        x = 50
+        for col in row:
+            pdf.drawString(x, y, str(col))
+            x += 50
+        y -= 20
+
+        # Add new page if out of space
+        if y < 50:
+            pdf.showPage()
+            y = 750
+
+    pdf.save()
+
+    # Return PDF as response
+    buffer.seek(0)
+    return Response(buffer, mimetype='application/pdf', headers={"Content-Disposition": f"attachment;filename={title}.pdf"})
