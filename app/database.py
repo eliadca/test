@@ -37,8 +37,6 @@ def init_db():
     conn.close()
 
 def get_db_connection():
-    conn = sqlite3.connect('/var/lib/data.db')  # Use a persistent path
-    conn.row_factory = sqlite3.Row
-    return conn
+    return sqlite3.connect(DB_NAME)
 
 init_db()
