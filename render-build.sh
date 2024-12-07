@@ -1,12 +1,12 @@
-services:
-  - type: web
-    name: flask-wkhtmltopdf-service
-    env: python
-    buildCommand: ./render-build.sh
-    startCommand: flask run --host=0.0.0.0 --port=10000
-    plan: free
-    envVars:
-      - key: FLASK_ENV
-        value: production
-      - key: FLASK_APP
-        value: app.py
+#!/usr/bin/env bash
+
+# Install wkhtmltopdf and other required libraries
+echo "Installing system dependencies..."
+apt-get update && apt-get install -y \
+    wkhtmltopdf \
+    libxrender1 \
+    libxext6 \
+    libfontconfig1
+
+# Install Python dependencies
+pip install -r requirements.txt
