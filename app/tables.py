@@ -1,13 +1,12 @@
 from flask import Blueprint, jsonify, request, render_template, Response 
 from app.database import get_db_connection
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from xhtml2pdf import pisa
 import io
 
 tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
 
 @tables_bp.route('/download/<int:table_id>', methods=['GET'])
-def download_table_pdf_reportlab(table_id):
+def download_table_html_to_pdf(table_id):
     # Connect to the database
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -25,39 +24,18 @@ def download_table_pdf_reportlab(table_id):
     rows = cursor.fetchall()
     conn.close()
 
-    # Generate PDF using reportlab
+    # Render the HTML content
+    html_content = render_template('table_pdf.html', title=title, rows=rows)
+
+    # Convert HTML to PDF
     buffer = io.BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=letter)
-    pdf.setTitle(f"Table - {title}")
+    pisa_status = pisa.CreatePDF(
+        io.StringIO(html_content),
+        dest=buffer
+    )
 
-    # Write the table title
-    pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawString(50, 750, f"Table: {title}")
-
-    # Write the table headers
-    pdf.setFont("Helvetica-Bold", 12)
-    headers = ["Name", "AVE", "AB", "H", "K", "BB", "HBP", "2B", "3B", "HR", "RBI", "R", "OPS"]
-    x, y = 50, 720
-    for header in headers:
-        pdf.drawString(x, y, header)
-        x += 50  # Move horizontally
-    y -= 20
-
-    # Write the table rows
-    pdf.setFont("Helvetica", 10)
-    for row in rows:
-        x = 50
-        for col in row:
-            pdf.drawString(x, y, str(col))
-            x += 50  # Move horizontally
-        y -= 20  # Move to the next row
-
-        # Add a new page if out of space
-        if y < 50:
-            pdf.showPage()
-            y = 750
-
-    pdf.save()
+    if pisa_status.err:
+        return jsonify({'error': 'Failed to create PDF'}), 500
 
     # Return the PDF as a response
     buffer.seek(0)
