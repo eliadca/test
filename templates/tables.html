@@ -36,6 +36,9 @@
             text-align: left;
             max-width: 800px;
         }
+        .table-list h2 {
+            color: white;
+        }
         .table-item {
             display: flex;
             justify-content: space-between;
@@ -50,45 +53,66 @@
         }
     </style>
     <script>
+        async function fetchTables() {
+            const response = await fetch('/tables/');
+            const tables = await response.json();
+            const list = document.getElementById('table-list');
+            list.innerHTML = '';
+
+            tables.forEach(table => {
+                const item = document.createElement('div');
+                item.className = 'table-item';
+
+                const title = document.createElement('span');
+                title.textContent = table[1];
+
+                const actions = document.createElement('div');
+                actions.className = 'table-actions';
+                
+                const viewButton = document.createElement('a');
+                viewButton.href = `/tables/${table[0]}`;
+                viewButton.textContent = 'View';
+                viewButton.className = 'button';
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'button';
+                deleteButton.onclick = async () => {
+                    if (confirm('Are you sure you want to delete this table?')) {
+                        await fetch(`/tables/${table[0]}`, { method: 'DELETE' });
+                        fetchTables();
+                    }
+                };
+
+                actions.appendChild(viewButton);
+                actions.appendChild(deleteButton);
+
+                item.appendChild(title);
+                item.appendChild(actions);
+                list.appendChild(item);
+            });
+        }
+
         async function createTable() {
             const title = prompt('Enter a title for the new table:');
             if (title) {
                 await fetch('/tables/add', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title })
                 });
-                location.reload();
+                fetchTables();
             }
         }
 
-        function deleteTable(tableId) {
-            if (confirm("Are you sure you want to delete this table?")) {
-                fetch(`/tables/${tableId}`, { method: "DELETE" })
-                    .then((response) => response.json())
-                    .then(() => {
-                        location.reload();
-                    });
-            }
-        }
+        window.onload = fetchTables;
     </script>
 </head>
 <body>
     <h1>Tablas</h1>
     <button class="button" onclick="createTable()">Add New Table</button>
-    <div class="table-list">
-        {% for table in tables %}
-        <div class="table-item">
-            <span>{{ table[1] }}</span>
-            <div class="table-actions">
-                <a href="/tables/download/{{ table[0] }}" class="button">Download</a>
-                <a href="/stats/tables/{{ table[0] }}" class="button">View</a>
-                <button class="button" onclick="deleteTable({{ table[0] }})">Delete</button>
-            </div>
-        </div>
-        {% endfor %}
+    <div id="table-list" class="table-list">
+        <!-- Tables will be loaded here -->
     </div>
 </body>
 </html>
