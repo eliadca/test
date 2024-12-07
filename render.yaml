@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: flask-weasyprint-service
+    name: flask-wkhtmltopdf-service
     env: python
     buildCommand: ./render-build.sh
     startCommand: flask run --host=0.0.0.0 --port=10000
