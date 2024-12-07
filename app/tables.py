@@ -1,13 +1,14 @@
 from flask import Blueprint, jsonify, request, render_template, Response 
 from app.database import get_db_connection
-from xhtml2pdf import pisa
+from weasyprint import HTML
 import io
+
+tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
 
 tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
 
 @tables_bp.route('/download/<int:table_id>', methods=['GET'])
 def download_table_html_to_pdf(table_id):
-    # Connect to the database
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -24,29 +25,21 @@ def download_table_html_to_pdf(table_id):
     rows = cursor.fetchall()
     conn.close()
 
-    # Render the HTML content
+    # Render HTML content
     html_content = render_template('table_pdf.html', title=title, rows=rows)
 
-    # Convert HTML to PDF
-    buffer = io.BytesIO()
-    pisa_status = pisa.CreatePDF(
-        io.StringIO(html_content),
-        dest=buffer
-    )
+    # Convert HTML to PDF using WeasyPrint
+    pdf = HTML(string=html_content).write_pdf()
 
-    if pisa_status.err:
-        return jsonify({'error': 'Failed to create PDF'}), 500
-
-    # Return the PDF as a response
-    buffer.seek(0)
+    # Return the PDF as a downloadable file
     return Response(
-        buffer,
+        pdf,
         mimetype='application/pdf',
         headers={
             "Content-Disposition": f"attachment; filename={title}.pdf"
         }
     )
-
+    
 @tables_bp.route('/', methods=['GET'])
 def get_tables():
     conn = get_db_connection()
