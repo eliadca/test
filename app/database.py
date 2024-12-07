@@ -1,6 +1,8 @@
 import sqlite3
+import os
 
-DB_NAME = 'baseball_stats.db'
+# Update the database location to a persistent directory
+DB_NAME = '/var/lib/baseball_stats.db'  # Use Render's persistent directory
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -39,4 +41,5 @@ def init_db():
 def get_db_connection():
     return sqlite3.connect(DB_NAME)
 
+# Initialize the database
 init_db()
