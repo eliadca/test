@@ -1,15 +1,12 @@
-#!/usr/bin/env bash
-
-# Install system dependencies for WeasyPrint
-echo "Installing system dependencies..."
-apt-get update && apt-get install -y \
-    libcairo2 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
-    libffi-dev \
-    libjpeg-dev \
-    zlib1g-dev
-
-# Install Python dependencies
-pip install -r requirements.txt
+services:
+  - type: web
+    name: flask-wkhtmltopdf-service
+    env: python
+    buildCommand: ./render-build.sh
+    startCommand: flask run --host=0.0.0.0 --port=10000
+    plan: free
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: app.py
