@@ -1,7 +1,36 @@
-from flask import Blueprint, jsonify, request, render_template
+from flask import Blueprint, jsonify, request, render_template, Response 
+from weasyprint import HTML
 from app.database import get_db_connection
 
 tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
+
+@tables_bp.route('/download/<int:table_id>', methods=['GET'])
+def download_table_html_to_pdf(table_id):
+    # Connect to the database
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Fetch the table title
+    cursor.execute('SELECT title FROM tables WHERE id = ?', (table_id,))
+    table = cursor.fetchone()
+    if not table:
+        return jsonify({'error': 'Table not found'}), 404
+
+    title = table[0]
+
+    # Fetch rows for the table
+    cursor.execute('SELECT name, ave, ab, h, k, bb, hbp, doubles, triples, hr, rbi, r, ops FROM rows WHERE table_id = ?', (table_id,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Render the HTML content
+    html_content = render_template('table_pdf.html', title=title, rows=rows)
+
+    # Convert HTML to PDF
+    pdf = HTML(string=html_content).write_pdf()
+
+    # Return the PDF as a response
+    return Response(pdf, mimetype='application/pdf', headers={"Content-Disposition": f"attachment;filename={title}.pdf"})
 
 @tables_bp.route('/', methods=['GET'])
 def get_tables():
