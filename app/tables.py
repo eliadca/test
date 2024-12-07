@@ -1,22 +1,68 @@
 from flask import Blueprint, jsonify, request, render_template, Response 
 from app.database import get_db_connection
-import pdfkit
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
 
 tables_bp = Blueprint('tables', __name__, url_prefix='/tables')
 
 @tables_bp.route('/download/<int:table_id>', methods=['GET'])
-def download_table_pdfkit(table_id):
-    # Fetch data as before...
+def download_table_pdf_reportlab(table_id):
+    # Connect to the database
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    # Render the HTML content
-    html_content = render_template('table_pdf.html', title=title, rows=rows)
+    # Fetch the table title
+    cursor.execute('SELECT title FROM tables WHERE id = ?', (table_id,))
+    table = cursor.fetchone()
+    if not table:
+        return jsonify({'error': 'Table not found'}), 404
 
-    # Convert HTML to PDF using pdfkit
-    pdf = pdfkit.from_string(html_content, False)
+    title = table[0]
+
+    # Fetch rows for the table
+    cursor.execute('SELECT name, ave, ab, h, k, bb, hbp, doubles, triples, hr, rbi, r, ops FROM rows WHERE table_id = ?', (table_id,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Generate PDF using reportlab
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    pdf.setTitle(f"Table - {title}")
+
+    # Write the table title
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawString(50, 750, f"Table: {title}")
+
+    # Write the table headers
+    pdf.setFont("Helvetica-Bold", 12)
+    headers = ["Name", "AVE", "AB", "H", "K", "BB", "HBP", "2B", "3B", "HR", "RBI", "R", "OPS"]
+    x, y = 50, 720
+    for header in headers:
+        pdf.drawString(x, y, header)
+        x += 50  # Move horizontally
+    y -= 20
+
+    # Write the table rows
+    pdf.setFont("Helvetica", 10)
+    for row in rows:
+        x = 50
+        for col in row:
+            pdf.drawString(x, y, str(col))
+            x += 50  # Move horizontally
+        y -= 20  # Move to the next row
+
+        # Add a new page if out of space
+        if y < 50:
+            pdf.showPage()
+            y = 750
+
+    pdf.save()
 
     # Return the PDF as a response
+    buffer.seek(0)
     return Response(
-        pdf,
+        buffer,
         mimetype='application/pdf',
         headers={
             "Content-Disposition": f"attachment; filename={title}.pdf"
