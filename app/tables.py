@@ -26,11 +26,11 @@ def download_table_html_to_pdf(table_id):
     # Render the HTML content
     html_content = render_template('table_pdf.html', title=title, rows=rows)
 
-    # Convert HTML to PDF
+    # Convert HTML to PDF with WeasyPrint
     pdf = HTML(string=html_content).write_pdf()
 
     # Return the PDF as a response
-    return Response(pdf, mimetype='application/pdf', headers={"Content-Disposition": f"attachment;filename={title}.pdf"})
+    return Response(pdf, mimetype='application/pdf', headers={"Content-Disposition": f"attachment; filename={title}.pdf"})
 
 @tables_bp.route('/', methods=['GET'])
 def get_tables():
